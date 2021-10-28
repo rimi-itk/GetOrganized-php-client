@@ -1,0 +1,53 @@
+#!/usr/bin/env php
+<?php
+
+require_once __DIR__.'/../vendor/autoload.php';
+
+use ItkDev\GetOrganizedApi\Client;
+use ItkDev\GetOrganizedApi\Service;
+
+if (count($argv) < 6) {
+    $message = <<<'EOD'
+Too few arguments.
+
+Usage: %s api-base-url api-username api-password service-FQN method [parameters…]
+
+Example:
+
+  %s 'https://www.getorganized.net/_goapi/' 'api-user' 'api-password' 'ItkDev\GetOrganizedApi\Service\Cases' FindCases '{"CaseIdFilter": "AKT-*", "IncludeRegularCases": true, "ItemCount": 30}'
+
+
+EOD;
+    $message = sprintf($message, $argv[0], $argv[0]);
+
+    fwrite(STDERR, $message);
+    exit(1);
+}
+
+[$apiBaseUrl, $apiUsername, $apiPassword, $serviceFQN, $method, $params] = array_slice($argv, 1);
+
+if (!class_exists($serviceFQN)) {
+    fwrite(STDERR, sprintf('Invalid service class FQN: %s', $serviceFQN).PHP_EOL);
+    exit(1);
+}
+
+if (!is_a($serviceFQN, Service::class, true)) {
+    fwrite(STDERR, sprintf('Client class FQN %s must be an instance of %s', $serviceFQN, Service::class).PHP_EOL);
+    exit(1);
+}
+
+try {
+    $client = new Client([
+        'base_url' => $apiBaseUrl,
+        'username' => $apiUsername,
+        'password' => $apiPassword,
+    ]);
+    $service = new $serviceFQN($client);
+    $params = json_decode($params, true);
+    $data = call_user_func([$service, $method], $params);
+
+    echo json_encode($data);
+} catch (\Exception $exception) {
+    fwrite(STDERR, $exception->getMessage());
+    exit(1);
+}

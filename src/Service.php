@@ -2,6 +2,7 @@
 
 namespace ItkDev\GetOrganizedApi;
 
+use SimpleXMLElement;
 use Symfony\Component\HttpClient\HttpClient;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
 
@@ -52,5 +53,10 @@ abstract class Service
         }
 
         return $this->httpClient;
+    }
+
+    protected function xml2array(string $xml): array
+    {
+        return json_decode(json_encode(new SimpleXMLElement($xml)), true);
     }
 }
